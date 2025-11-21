@@ -105,6 +105,33 @@ Run the comprehensive test suite:
 python tests/test_jamba_model.py
 ```
 
+## Benchmarks
+
+Comprehensive benchmark suite for performance evaluation:
+
+### General Benchmarks
+
+```bash
+python benchmarks/run_benchmarks.py
+```
+
+Tests model size, forward pass speed, memory usage, and training performance.
+
+### MuJoCo RL Benchmarks
+
+```bash
+python benchmarks/run_mujoco_benchmark.py
+```
+
+Evaluates reinforcement learning performance on MuJoCo environments.
+
+**Expected Improvements over Simple SSM**:
+- Performance: +20-36% higher rewards
+- Sample Efficiency: +20-29% faster convergence
+- Stability: +37-57% reduced variance
+
+See [BENCHMARKS.md](BENCHMARKS.md) and [MUJOCO_BENCHMARKS.md](MUJOCO_BENCHMARKS.md) for detailed analysis.
+
 ## Project Structure
 
 ```
