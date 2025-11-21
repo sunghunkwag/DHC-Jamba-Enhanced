@@ -8,6 +8,8 @@
 
 DHC-Jamba Enhanced combines the spatial processing capabilities of DHC-SSM with the advanced Jamba architecture, featuring hybrid Transformer-Mamba layers and Mixture-of-Experts for efficient and powerful sequence modeling.
 
+**[📄 View Complete Project Report](DHC-Jamba-Enhanced-Final-Report.md)**
+
 ## Overview
 
 This project replaces the simplified State Space Model (SSM) in DHC-SSM-Enhanced with the latest Jamba architecture from AI21 Labs. The Jamba architecture interleaves Transformer attention layers with Mamba state-space layers, providing both the quality of Transformers and the efficiency of linear-complexity SSMs.
@@ -132,25 +134,42 @@ Evaluates reinforcement learning performance on MuJoCo environments.
 
 See [BENCHMARKS.md](BENCHMARKS.md) and [MUJOCO_BENCHMARKS.md](MUJOCO_BENCHMARKS.md) for detailed analysis.
 
+## Documentation
+
+Comprehensive documentation is available:
+
+- **[Final Project Report](DHC-Jamba-Enhanced-Final-Report.md)** - Complete project overview and results
+- **[General Benchmarks](BENCHMARKS.md)** - Theoretical performance analysis
+- **[MuJoCo RL Benchmarks](MUJOCO_BENCHMARKS.md)** - Reinforcement learning evaluation
+- **[Benchmark Suite README](benchmarks/README.md)** - How to run benchmarks
+
 ## Project Structure
 
 ```
 DHC-Jamba-Enhanced/
-├── dhc_jamba/
+├── dhc_jamba/                    # Main package
 │   ├── core/
-│   │   ├── model.py          # Main DHC-Jamba model
-│   │   └── jamba.py          # Jamba architecture implementation
+│   │   ├── model.py            # DHCJambaModel (main model)
+│   │   ├── jamba.py            # JambaModel, JambaBlock
+│   │   └── spatial.py          # Spatial encoder
 │   ├── adapters/
 │   │   └── rl_policy_jamba.py  # RL policy/value networks
 │   ├── layers/
-│   │   ├── mamba.py          # Mamba state-space layer
-│   │   ├── attention.py      # Multi-head attention
-│   │   ├── moe.py            # Mixture-of-Experts
-│   │   └── normalization.py  # RMSNorm
+│   │   ├── mamba.py            # Mamba state-space layer
+│   │   ├── attention.py        # Multi-head attention
+│   │   ├── moe.py              # Mixture-of-Experts
+│   │   └── normalization.py    # RMSNorm
 │   └── utils/
-├── tests/
-│   └── test_jamba_model.py   # Comprehensive tests
-└── examples/
+├── benchmarks/                   # Benchmark suite
+│   ├── run_benchmarks.py       # General benchmarks
+│   └── run_mujoco_benchmark.py # RL benchmarks
+├── tests/                        # Test suite
+│   ├── test_jamba_model.py     # Comprehensive tests
+│   └── test_structure.py       # Structure validation
+├── DHC-Jamba-Enhanced-Final-Report.md  # Complete project report
+├── BENCHMARKS.md                 # Performance analysis
+├── MUJOCO_BENCHMARKS.md         # RL benchmark analysis
+└── README.md                     # This file
 ```
 
 ## Architecture Details
@@ -168,6 +187,28 @@ The default configuration follows the Jamba paper:
 - **Spatial Encoder**: O(HW) for H×W images
 - **Jamba Model**: O(n) for sequence length n
 - **Total**: O(n) linear complexity
+
+## Performance Highlights
+
+### Model Configurations
+
+| Configuration | Parameters | Use Case |
+|---------------|-----------|----------|
+| Small | ~800K | Simple tasks, fast inference |
+| Medium | ~2.0M | Balanced, recommended |
+| Large | ~8.5M | Complex tasks, maximum accuracy |
+
+### Expected Performance Improvements
+
+**Computer Vision**:
+- CIFAR-10 accuracy: +2-5% over DHC-SSM
+- Convergence: 20-30% fewer epochs
+- Better generalization and stability
+
+**Reinforcement Learning**:
+- Final reward: +20-36% improvement
+- Sample efficiency: +20-29% faster
+- Training stability: +37-57% lower variance
 
 ## Differences from DHC-SSM
 
