@@ -31,7 +31,7 @@ def test_mamba_layer():
     layer = MambaLayer(d_model=d_model, d_state=16, d_conv=4)
     x = torch.randn(batch_size, seq_len, d_model)
     
-    output = layer(x)
+    output, state = layer(x)
     
     assert output.shape == (batch_size, seq_len, d_model), \
         f"Expected shape {(batch_size, seq_len, d_model)}, got {output.shape}"
@@ -103,10 +103,11 @@ def test_jamba_block():
     )
     
     x = torch.randn(batch_size, seq_len, d_model)
-    output, router_logits = mamba_block(x)
+    output, router_logits, next_state = mamba_block(x)
     
     assert output.shape == (batch_size, seq_len, d_model)
     assert router_logits is None
+    assert next_state is not None
     print(f"✓ Mamba block output shape: {output.shape}")
     
     # Test Attention block with MoE
@@ -118,10 +119,11 @@ def test_jamba_block():
         num_experts=8
     )
     
-    output, router_logits = attn_block(x)
+    output, router_logits, next_state = attn_block(x)
     
     assert output.shape == (batch_size, seq_len, d_model)
     assert router_logits is not None
+    assert next_state is None
     print(f"✓ Attention+MoE block output shape: {output.shape}")
     print(f"✓ Router logits shape: {router_logits.shape}")
 
@@ -160,7 +162,7 @@ def test_jamba_model():
     )
     
     x = torch.randn(batch_size, seq_len, d_model)
-    output, router_logits_list = model(x, return_router_logits=True)
+    output, router_logits_list, next_states = model(x, return_router_logits=True)
     
     assert output.shape == (batch_size, seq_len, d_model)
     print(f"✓ Jamba model output shape: {output.shape}")

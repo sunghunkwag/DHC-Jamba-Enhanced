@@ -160,7 +160,7 @@ class DHCJambaModel(nn.Module):
         jamba_input = spatial_features.unsqueeze(1)  # (batch, 1, d_model)
         
         # Jamba processing
-        jamba_output, _ = self.jamba_model(jamba_input)
+        jamba_output, _, _ = self.jamba_model(jamba_input)
         
         # Remove sequence dimension
         temporal_features = jamba_output.squeeze(1)  # (batch, d_model)

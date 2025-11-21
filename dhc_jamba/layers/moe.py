@@ -7,7 +7,7 @@ Implements sparse MoE routing as used in Jamba architecture.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Tuple
+from typing import Tuple, Optional
 
 
 class MoELayer(nn.Module):

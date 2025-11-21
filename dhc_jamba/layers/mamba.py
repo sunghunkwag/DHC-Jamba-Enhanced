@@ -8,7 +8,7 @@ Implements selective state-space models with linear complexity.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class MambaLayer(nn.Module):
@@ -74,15 +74,21 @@ class MambaLayer(nn.Module):
         nn.init.xavier_uniform_(self.x_proj.weight)
         nn.init.normal_(self.dt_proj.weight, std=0.02)
     
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        state: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Forward pass through Mamba layer.
         
         Args:
             x: Input tensor of shape (batch, seq_len, d_model)
+            state: Optional initial state (batch, d_inner, d_state)
         
         Returns:
-            Output tensor of shape (batch, seq_len, d_model)
+            output: Output tensor of shape (batch, seq_len, d_model)
+            next_state: Final hidden state (batch, d_inner, d_state)
         """
         batch, seq_len, d_model = x.shape
         
@@ -106,7 +112,7 @@ class MambaLayer(nn.Module):
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
         
         # Selective scan (simplified version)
-        y = self._selective_scan(x_conv, A, B, C)
+        y, next_state = self._selective_scan(x_conv, A, B, C, state)
         
         # Residual connection
         y = y * F.silu(res)
@@ -114,15 +120,18 @@ class MambaLayer(nn.Module):
         # Output projection
         output = self.out_proj(y)
         
-        return output
+        return output, next_state
     
+    # Optimize for compilation if available
+    @torch.compile
     def _selective_scan(
         self,
         x: torch.Tensor,
         A: torch.Tensor,
         B: torch.Tensor,
-        C: torch.Tensor
-    ) -> torch.Tensor:
+        C: torch.Tensor,
+        h_init: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Simplified selective scan operation.
         
@@ -134,15 +143,20 @@ class MambaLayer(nn.Module):
             A: State transition matrix (d_inner, d_state)
             B: Input matrix (batch, seq_len, d_state)
             C: Output matrix (batch, seq_len, d_state)
+            h_init: Optional initial state (batch, d_inner, d_state)
         
         Returns:
             Output (batch, seq_len, d_inner)
+            Final state (batch, d_inner, d_state)
         """
         batch, seq_len, d_inner = x.shape
         d_state = A.shape[1]
         
         # Initialize state
-        h = torch.zeros(batch, d_inner, d_state, device=x.device, dtype=x.dtype)
+        if h_init is not None:
+            h = h_init
+        else:
+            h = torch.zeros(batch, d_inner, d_state, device=x.device, dtype=x.dtype)
         
         outputs = []
         
@@ -165,4 +179,4 @@ class MambaLayer(nn.Module):
         # Stack outputs
         y = torch.stack(outputs, dim=1)  # (batch, seq_len, d_inner)
         
-        return y
+        return y, h

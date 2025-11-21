@@ -92,20 +92,24 @@ class JambaBlock(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        mask: Optional[torch.Tensor] = None
-    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
+        mask: Optional[torch.Tensor] = None,
+        state: Optional[torch.Tensor] = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[torch.Tensor]]:
         """
         Forward pass through Jamba block.
         
         Args:
             x: Input tensor (batch, seq_len, d_model)
             mask: Optional attention mask
+            state: Optional Mamba state
         
         Returns:
             output: Output tensor (batch, seq_len, d_model)
             router_logits: Router logits if using MoE, else None
+            next_state: Next Mamba state if layer is Mamba, else None
         """
         router_logits = None
+        next_state = None
         
         # Main layer with residual
         residual = x
@@ -114,7 +118,7 @@ class JambaBlock(nn.Module):
         if self.layer_type == 'attention':
             x = self.main_layer(x, mask=mask)
         else:
-            x = self.main_layer(x)
+            x, next_state = self.main_layer(x, state=state)
         
         x = residual + x
         
@@ -129,7 +133,7 @@ class JambaBlock(nn.Module):
         
         x = residual + x
         
-        return x, router_logits
+        return x, router_logits, next_state
 
 
 class JambaModel(nn.Module):
@@ -209,25 +213,43 @@ class JambaModel(nn.Module):
         self,
         x: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
+        state: Optional[List[torch.Tensor]] = None,
         return_router_logits: bool = False
-    ) -> Tuple[torch.Tensor, Optional[List[torch.Tensor]]]:
+    ) -> Tuple[torch.Tensor, Optional[List[torch.Tensor]], List[torch.Tensor]]:
         """
         Forward pass through Jamba model.
         
         Args:
             x: Input tensor (batch, seq_len, d_model)
             mask: Optional attention mask
+            state: Optional list of Mamba states (one for each Mamba layer)
             return_router_logits: Whether to return router logits
         
         Returns:
             output: Output tensor (batch, seq_len, d_model)
             router_logits: List of router logits if requested
+            next_states: List of updated Mamba states
         """
         router_logits_list = [] if return_router_logits else None
+        next_states = []
+
+        # Determine Mamba layer indices to map state correctly
+        mamba_idx = 0
         
         # Pass through all layers
         for layer in self.layers:
-            x, router_logits = layer(x, mask=mask)
+            # Get current state if available and if layer is Mamba
+            current_state = None
+            if layer.layer_type == 'mamba':
+                if state is not None and mamba_idx < len(state):
+                    current_state = state[mamba_idx]
+
+            x, router_logits, next_state = layer(x, mask=mask, state=current_state)
+
+            if layer.layer_type == 'mamba':
+                if next_state is not None:
+                    next_states.append(next_state)
+                mamba_idx += 1
             
             if return_router_logits and router_logits is not None:
                 router_logits_list.append(router_logits)
@@ -235,7 +257,7 @@ class JambaModel(nn.Module):
         # Final normalization
         x = self.norm(x)
         
-        return x, router_logits_list
+        return x, router_logits_list, next_states
 
 
 class JambaConfig:
