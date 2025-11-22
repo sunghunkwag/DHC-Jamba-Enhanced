@@ -11,6 +11,7 @@ from typing import Dict, Optional, Tuple
 import logging
 
 from .jamba import JambaModel, JambaConfig
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
